@@ -315,9 +315,31 @@
     balloon.position.y+=Math.sin(now*0.0011)*0.6;   // gentle float bob (visual only; physics uses st.pos)
   }
 
+  // ---------------------------------------------------------------- central site marker (Egypt Eclipse coin)
+  // Copied from the Iceland festival marker: concentric glowing rings laid flat on the real terrain, plus a
+  // spinning "coin" (assets/coin.png) floating above — at the central map site 25.723550, 32.607078 (→ local metres).
+  var SITE={x:60,z:75};
+  var coinTex=new THREE.TextureLoader().load('assets/coin.png');
+  var siteCoin=null, siteRingMat=null;
+  function buildSiteMarker(){
+    var gy=H(SITE.x,SITE.z), grp=new THREE.Group(); grp.position.set(SITE.x,gy+4,SITE.z);
+    function ring(ri,ro,op){var mm=new THREE.MeshBasicMaterial({color:0xffb24d,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});var m=new THREE.Mesh(new THREE.RingGeometry(ri,ro,64),mm);m.rotation.x=-Math.PI/2;grp.add(m);return mm;}
+    siteRingMat=ring(150,184,0.55);   // outer ring (gently pulses in the loop)
+    ring(72,88,0.5);                  // inner ring
+    ring(0,150,0.07);                 // soft fill
+    // the coin — an upright disc floating in the centre, spun slowly about its vertical axis. Two
+    // back-to-back single-sided planes so the "EGYPT ECLIPSE" text reads correctly on BOTH faces.
+    siteCoin=new THREE.Group(); siteCoin.position.set(0,108,0);
+    var coinMat=new THREE.MeshBasicMaterial({map:coinTex,transparent:true,depthWrite:false,side:THREE.FrontSide});
+    siteCoin.add(new THREE.Mesh(new THREE.PlaneGeometry(140,140),coinMat));
+    var cb=new THREE.Mesh(new THREE.PlaneGeometry(140,140),coinMat); cb.rotation.y=Math.PI; siteCoin.add(cb);
+    grp.add(siteCoin);
+    scene.add(grp);
+  }
+
   // ---------------------------------------------------------------- minimap (corner map of the west bank)
-  // A tilted top-down second camera over the whole bbox, plus bright layer-1 markers (a peak pin at
-  // al-Qurn + the player arrow) that only the minimap camera renders. No festival marker yet.
+  // A tilted top-down second camera over the whole bbox, plus bright layer-1 markers (a gold site pin at
+  // the central map site + the player arrow) that only the minimap camera renders.
   var miniCam=null, playerArrow=null;
   var mapMW=232, mapMH=150, mapMX=14, mapMY=46;        // rectangular minimap + corner offsets (set in rz)
   function buildMinimap(){
@@ -325,10 +347,10 @@
     // not a flat top-down. North is up; the whole area stays in frame.
     miniCam=new THREE.PerspectiveCamera(42,mapMW/mapMH,800,150000);
     miniCam.position.set(0,22000,23000);miniCam.lookAt(0,300,-1500);miniCam.layers.enable(1);
-    // peak pin — a bright gold marker at al-Qurn that always faces the minimap camera and stays on top
-    var py=H(DEM.peak.x,DEM.peak.z);
+    // site pin — a bright gold marker at the central map site that always faces the minimap camera
+    var py=H(SITE.x,SITE.z);
     var pin=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTex,transparent:true,depthTest:false,depthWrite:false}));
-    pin.scale.set(1900,1900,1);pin.position.set(DEM.peak.x,py+900,DEM.peak.z);pin.renderOrder=11;pin.layers.set(1);scene.add(pin);
+    pin.scale.set(1900,1900,1);pin.position.set(SITE.x,py+900,SITE.z);pin.renderOrder=11;pin.layers.set(1);scene.add(pin);
     // player arrow — flat, rotates to your heading, always drawn on top
     var sh=new THREE.Shape();sh.moveTo(0,1700);sh.lineTo(-1080,-1280);sh.lineTo(0,-560);sh.lineTo(1080,-1280);sh.lineTo(0,1700);
     var ar=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshBasicMaterial({color:0x6fe9ff,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
@@ -452,6 +474,8 @@
       sE.textContent=Math.round(st.speed*3.6);aE.textContent=Math.round(st.pos.y);tE.style.height=Math.round(st.throttle*100)+'%';
       phE.textContent=totality>0.85?'totality':(coverage>0.5?'deep partial':(phase<0.5?'first contact':'fourth contact'));phE.style.opacity=0.5+0.5*coverage;
     }
+    if(siteRingMat)siteRingMat.opacity=0.34+0.22*Math.sin(now*0.0022);   // marker ring pulse
+    if(siteCoin)siteCoin.rotation.y=now*0.0005;                          // coin: slow horizontal spin
     renderer.render(scene,camera);
     // --- corner minimap: second pass from the top-down camera into the lower-left viewport ---
     if(started&&miniCam){
@@ -474,7 +498,7 @@
 
   // ---------------------------------------------------------------- boot
   loadHeightmap(function(ok){
-    if(ok){buildTerrain();setSpawn();buildMinimap();loadBuildings();var a=document.getElementById('f-attr');if(a)a.textContent='imagery © esri · elevation © aws terrain / srtm · buildings © openstreetmap';}
+    if(ok){buildTerrain();setSpawn();buildMinimap();loadBuildings();buildSiteMarker();var a=document.getElementById('f-attr');if(a)a.textContent='imagery © esri · elevation © aws terrain / srtm · buildings © openstreetmap';}
     demReady=true;if(flyEl)flyEl.textContent='click to fly';
   });
   requestAnimationFrame(loop);
