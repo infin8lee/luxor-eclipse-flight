@@ -1,0 +1,14 @@
+{
+  "name": "luxor-eclipse-bake",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline DEM + imagery bakers for the Luxor eclipse flight sim (dev-only; outputs are committed).",
+  "scripts": {
+    "bake": "node bake-dem.mjs",
+    "imagery": "node bake-imagery.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.0"
+  }
+}
